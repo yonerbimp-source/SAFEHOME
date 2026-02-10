@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Safe Home – Villas</title>
+
+<style>
+:root{
+  --bg:#0b0b0b;
+  --panel:#111;
+  --card:#151515;
+  --border:#262626;
+  --text:#f5f5f5;
+  --muted:#b5b5b5;
+  --gold:#d4af37;
+  --green:#1dd1a1;
+  --red:#e74c3c;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:"Segoe UI",Inter,Arial,sans-serif;
+  background:radial-gradient(circle at top,#1a1a1a,#0b0b0b);
+  color:var(--text);
+}
+header{
+  padding:28px 16px 22px;
+  text-align:center;
+  border-bottom:1px solid var(--border);
+}
+header img{width:120px;margin-bottom:12px}
+header h1{margin:0;font-size:28px;letter-spacing:2px;color:var(--gold)}
+header .sub{margin-top:6px;font-size:13px;letter-spacing:3px;color:#cfcfcf}
+
+.wrap{max-width:1100px;margin:auto;padding:20px}
+
+.actions{
+  display:flex;
+  justify-content:center;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-bottom:24px;
+}
+
+button{
+  padding:12px 18px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:linear-gradient(180deg,#1a1a1a,#111);
+  color:#fff;
+  font-weight:800;
+  cursor:pointer;
+}
+button:hover{filter:brightness(1.15)}
+button.primary{
+  background:linear-gradient(180deg,#1dd1a1,#17b890);
+  color:#062a20;
+  border:none;
+}
+button.secondary{
+  border-color:var(--gold);
+  color:var(--gold);
+}
+button.danger{
+  background:linear-gradient(180deg,#ff6b6b,#e74c3c);
+  border:none;
+}
+
+.item{
+  background:linear-gradient(180deg,#161616,#101010);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:18px;
+  margin-bottom:16px;
+}
+
+.title{font-size:18px;font-weight:900}
+.muted{font-size:12px;color:var(--muted)}
+.total{font-size:20px;font-weight:900;color:var(--green);margin-top:6px}
+
+.job{
+  margin-top:10px;
+  padding:12px;
+  border-radius:14px;
+  border:1px dashed var(--border);
+}
+
+.hr{border-top:1px solid var(--border);margin:24px 0}
+</style>
+</head>
+
+<body>
+
+<header>
+  <img src="logo.png" alt="Safe Home Logo">
+  <h1>SAFE HOME</h1>
+  <div class="sub">PROPERTY MANAGEMENT</div>
+</header>
+
+<div class="wrap">
+
+  <div class="actions">
+    <button class="primary" onclick="showAddVilla()">➕ AGREGAR VILLA</button>
+    <button onclick="history.back()">⬅ VOLVER</button>
+  </div>
+
+  <div id="addVilla" style="display:none;margin-bottom:24px">
+    <div class="item">
+      <input id="owner" placeholder="Propietario"><br><br>
+      <input id="number" placeholder="Número de villa"><br><br>
+      <input id="residential" placeholder="Residencial"><br><br>
+      <button class="primary" onclick="addVilla()">GUARDAR VILLA</button>
+    </div>
+  </div>
+
+  <div id="villaList"></div>
+
+</div>
+
+<script>
+const VILLAS_KEY="safehome_villas";
+const JOBS_KEY="safehome_jobs_base";
+const $=id=>document.getElementById(id);
+
+let villas=[], jobs=[];
+
+function money(n){
+  return Number(n||0).toLocaleString("es-DO",{minimumFractionDigits:2});
+}
+
+function toMinutes(hhmm){
+  const [h,m] = hhmm.split(":").map(Number);
+  return h*60 + (m||0);
+}
+function hoursBetween(start,end){
+  const s = toMinutes(start);
+  let e = toMinutes(end);
+  if(e <= s){
+    e += 12 * 60; // asumir tarde
+  }
+  return (e - s) / 60;
+}
+function jobLabor(j){
+  if(j.start && j.end && j.rate){
+    return Number((hoursBetween(j.start,j.end) * Number(j.rate)).toFixed(2));
+  }
+  return Number(j.labor || 0);
+}
+
+function load(){
+  villas = JSON.parse(localStorage.getItem(VILLAS_KEY) || "[]");
+  jobs   = JSON.parse(localStorage.getItem(JOBS_KEY) || "[]");
+}
+function saveVillas(){
+  localStorage.setItem(VILLAS_KEY, JSON.stringify(villas));
+}
+
+function villaTotal(name){
+  return jobs
+    .filter(j=>j.villa===name)
+    .reduce((sum,j)=>{
+      const labor = jobLabor(j);
+      const exp = (j.expenses||[]).reduce((s,e)=>s+Number(e.amount||0),0);
+      return sum + labor + exp;
+    },0);
+}
+
+function showAddVilla(){
+  $("addVilla").style.display="block";
+}
+
+function addVilla(){
+  const owner=$("owner").value.trim();
+  const number=$("number").value.trim();
+  const residential=$("residential").value.trim();
+  if(!owner||!number||!residential) return alert("Completa todo");
+  villas.push({owner,number,residential});
+  saveVillas();
+  $("addVilla").style.display="none";
+  render();
+}
+
+function toggleJobs(i){
+  const el=$("jobs-"+i);
+  el.style.display = el.style.display==="none" ? "block" : "none";
+}
+
+function render(){
+  const list=$("villaList");
+  list.innerHTML="";
+  if(!villas.length){
+    list.innerHTML="<div class='muted'>No hay villas registradas</div>";
+    return;
+  }
+
+  villas.forEach((v,i)=>{
+    const name=`${v.owner} – Villa ${v.number}`;
+    const related = jobs.filter(j=>j.villa===name);
+
+    const d=document.createElement("div");
+    d.className="item";
+    d.innerHTML=`
+      <div class="title">${name}</div>
+      <div class="muted">${v.residential}</div>
+      <div class="total">RD$ ${money(villaTotal(name))}</div>
+
+      <div class="actions">
+        <button class="secondary" onclick="toggleJobs(${i})">VER TRABAJOS</button>
+        <button class="danger" onclick="del(${i})">ELIMINAR</button>
+      </div>
+
+      <div id="jobs-${i}" style="display:none;margin-top:10px">
+        ${related.length ? related.map(j=>`
+          <div class="job">
+            <strong>${j.desc}</strong><br>
+            <span class="muted">${j.date}</span><br>
+            <span class="total">RD$ ${money(jobLabor(j))}</span>
+          </div>
+        `).join("") : "<div class='muted'>No hay trabajos</div>"}
+      </div>
+    `;
+    list.appendChild(d);
+  });
+}
+
+function del(i){
+  if(!confirm("¿Eliminar villa?")) return;
+  villas.splice(i,1);
+  saveVillas();
+  render();
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+  load();
+  render();
+});
+</script>
+
+</body>
+</html>

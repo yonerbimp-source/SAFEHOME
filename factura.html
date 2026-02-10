@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Factura – Safe Home</title>
+
+<style>
+body{
+  font-family:"Segoe UI",Arial,sans-serif;
+  margin:40px;
+  color:#000;
+}
+.center{text-align:center}
+hr{border:none;border-top:1px solid #bbb;margin:20px 0}
+
+.logo{width:130px;margin-bottom:10px}
+
+h1{
+  margin:6px 0 0;
+  letter-spacing:3px;
+}
+.sub{font-size:13px;letter-spacing:2px}
+
+.block{
+  margin-top:16px;
+  font-size:14px;
+  line-height:1.6;
+}
+
+.flex{
+  display:flex;
+  justify-content:space-between;
+  gap:30px;
+}
+.box{
+  width:50%;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:18px;
+}
+th,td{
+  border:1px solid #ccc;
+  padding:8px;
+  font-size:13px;
+  vertical-align:top;
+}
+th{background:#f2f2f2}
+
+.total{
+  margin-top:20px;
+  text-align:right;
+  font-size:20px;
+  font-weight:bold;
+}
+
+.footer{
+  margin-top:30px;
+  font-size:13px;
+  text-align:center;
+  line-height:1.6;
+}
+
+.print{
+  margin-top:30px;
+  text-align:right;
+}
+@media print{
+  .print{display:none}
+}
+</style>
+</head>
+
+<body>
+
+<!-- ENCABEZADO -->
+<div class="center">
+  <img src="logo.png" class="logo">
+  <h1>SAFE HOME</h1>
+  <div class="sub">PROPERTY MANAGEMENT</div>
+
+  <!-- ZONA -->
+  <div class="block">
+    Punta Cana · Bávaro · Cap Cana
+  </div>
+
+  <!-- NOMBRE Y CARGO -->
+  <div class="block">
+    <strong>Yonerbi Mendoza</strong><br>
+    Gerente de Mantenimiento y Operaciones<br>
+    <em>Maintenance & Operations Manager</em>
+  </div>
+</div>
+
+<hr>
+
+<!-- INFO CLIENTE -->
+<div class="flex block">
+  <div class="box">
+    <strong>Cliente / Propiedad:</strong><br>
+    <span id="cliente"></span>
+  </div>
+  <div class="box">
+    <strong>Periodo:</strong> <span id="periodo"></span><br>
+    <strong>Fecha:</strong> <span id="fecha"></span>
+  </div>
+</div>
+
+<!-- DETALLE -->
+<div class="block">
+  <table>
+    <thead>
+      <tr>
+        <th>Descripción</th>
+        <th>Fecha</th>
+        <th>Detalle del trabajo</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody id="items"></tbody>
+  </table>
+</div>
+
+<div class="total">
+  TOTAL A PAGAR: RD$ <span id="total"></span>
+</div>
+
+<!-- INFO EMPRESA ABAJO -->
+<div class="footer">
+  📞 +1 (829) 410-0985 · ✉️ yonerbimp@gmail.com<br>
+  <strong>Servicios:</strong> Inspecciones · Mantenimiento · Supervisión<br>
+  <em>Services:</em> Inspections · Maintenance · Supervision<br>
+  ⚠️ 24/7 Emergencias · Emergency Response
+</div>
+
+<div class="print">
+  <button onclick="window.print()">🖨 Imprimir factura</button>
+</div>
+
+<script>
+const data = JSON.parse(sessionStorage.getItem("FACTURA_DATA") || "{}");
+const $ = id => document.getElementById(id);
+
+function money(n){
+  return Number(n||0).toLocaleString("es-DO",{minimumFractionDigits:2});
+}
+
+$("cliente").textContent = data.villa || "";
+$("periodo").textContent = data.mes || "";
+$("fecha").textContent = new Date().toLocaleDateString();
+
+let sum = 0;
+(data.items || []).forEach(j=>{
+  sum += j.total;
+
+  let detail = "";
+  if(j.start && j.end){
+    detail += `Horario: ${j.start} → ${j.end}<br>`;
+    detail += `Horas trabajadas: ${j.hours} h<br>`;
+    detail += `Precio por hora: RD$ ${money(j.rate)}<br>`;
+    detail += `Mano de obra: RD$ ${money(j.labor)}<br>`;
+  }else{
+    detail += `Mano de obra fija: RD$ ${money(j.labor)}<br>`;
+  }
+
+  if(j.expenses && j.expenses.length){
+    detail += `<strong>Gastos incluidos:</strong><br>`;
+    j.expenses.forEach(e=>{
+      detail += `• ${e.desc}: RD$ ${money(e.amount)}<br>`;
+    });
+  }
+
+  $("items").innerHTML += `
+    <tr>
+      <td>${j.desc}</td>
+      <td>${j.date}</td>
+      <td>${detail}</td>
+      <td>RD$ ${money(j.total)}</td>
+    </tr>
+  `;
+});
+
+$("total").textContent = money(sum);
+</script>
+
+</body>
+</html>

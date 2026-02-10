@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Safe Home – Reportes</title>
+
+<style>
+:root{
+  --bg:#0b0b0b;
+  --panel:#111;
+  --border:#262626;
+  --text:#f5f5f5;
+  --muted:#b5b5b5;
+  --gold:#d4af37;
+  --green:#1dd1a1;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:"Segoe UI",Arial,sans-serif;
+  background:#0b0b0b;
+  color:var(--text);
+}
+header{
+  text-align:center;
+  padding:26px 16px;
+  border-bottom:1px solid var(--border);
+}
+header img{width:110px;margin-bottom:10px}
+header h1{margin:0;color:var(--gold);letter-spacing:2px}
+header .sub{font-size:12px;letter-spacing:3px;color:#ccc}
+
+.wrap{max-width:1100px;margin:auto;padding:20px}
+
+.controls{
+  display:flex;
+  justify-content:center;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:20px;
+}
+
+label{font-size:12px;color:var(--muted)}
+input,select{
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--panel);
+  color:var(--text);
+}
+
+button{
+  padding:10px 16px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:#111;
+  color:#fff;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.item{
+  background:linear-gradient(180deg,#161616,#101010);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:18px;
+  margin-bottom:16px;
+}
+
+.title{font-weight:900}
+.muted{font-size:12px;color:var(--muted)}
+.total{
+  text-align:right;
+  font-weight:900;
+  color:var(--green);
+  margin-top:10px;
+}
+
+.toggle{
+  margin-top:10px;
+  padding:10px 12px;
+  border:1px dashed var(--border);
+  border-radius:14px;
+}
+
+.gastos{
+  margin-top:8px;
+  padding-left:10px;
+}
+.gasto{
+  font-size:13px;
+  color:var(--muted);
+}
+
+@media print{
+  button,
+  .controls,
+  input[type="checkbox"]{
+    display:none !important;
+  }
+  body{background:#fff;color:#000}
+  .item{background:#fff;border:1px solid #ccc}
+  .gasto,.muted,.title,.total{color:#000 !important}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <img src="logo.png">
+  <h1>SAFE HOME</h1>
+  <div class="sub">REPORTES</div>
+</header>
+
+<div class="wrap">
+
+  <div class="controls">
+    <div>
+      <label>Mes</label><br>
+      <input type="month" id="monthPick">
+    </div>
+    <div>
+      <label>Villa</label><br>
+      <select id="villaPick"></select>
+    </div>
+    <div style="align-self:end;display:flex;gap:10px">
+      <button onclick="imprimirFactura()">📄 Imprimir factura</button>
+      <button onclick="window.print()">🖨 Imprimir reporte</button>
+      <button onclick="history.back()">⬅ Volver</button>
+    </div>
+  </div>
+
+  <div id="result"></div>
+
+</div>
+
+<script>
+const JOBS_KEY="safehome_jobs_base";
+const VILLAS_KEY="safehome_villas";
+const $=id=>document.getElementById(id);
+
+let jobs=[], villas=[], includeExpenses={};
+
+function money(n){
+  return Number(n||0).toLocaleString("es-DO",{minimumFractionDigits:2});
+}
+function toMinutes(hhmm){
+  const p=String(hhmm||"").split(":").map(Number);
+  return p[0]*60+(p[1]||0);
+}
+function hoursBetween(a,b){
+  let s=toMinutes(a), e=toMinutes(b);
+  if(e<=s) e+=12*60;
+  return (e-s)/60;
+}
+function labor(j){
+  if(j.start&&j.end&&j.rate){
+    return Number((hoursBetween(j.start,j.end)*Number(j.rate)).toFixed(2));
+  }
+  return Number(j.labor||0);
+}
+function jobKey(j,idx){
+  return (j.date||"")+"|"+(j.villa||"")+"|"+(j.desc||"")+"|"+idx;
+}
+
+function load(){
+  jobs=JSON.parse(localStorage.getItem(JOBS_KEY)||"[]");
+  villas=JSON.parse(localStorage.getItem(VILLAS_KEY)||"[]");
+}
+
+function render(){
+  const m=monthPick.value, v=villaPick.value, box=result;
+  box.innerHTML="";
+
+  jobs.map((j,i)=>({...j,_i:i}))
+    .filter(j=>(j.date||"").startsWith(m)&&(v==="ALL"||j.villa===v))
+    .forEach(j=>{
+      const k=jobKey(j,j._i);
+      if(includeExpenses[k]===undefined)includeExpenses[k]=false;
+
+      const lab=labor(j);
+      const total=lab+(includeExpenses[k]?(j.expenses||[]).reduce((s,e)=>s+Number(e.amount||0),0):0);
+
+      box.innerHTML+=`
+      <div class="item">
+        <div class="title">${j.desc}</div>
+        <div class="muted">${j.date} · ${j.villa}</div>
+        ${j.start?`<div>⏰ ${j.start} → ${j.end}</div>`:""}
+        ${j.rate?`<div class="muted">⏱️ ${hoursBetween(j.start,j.end).toFixed(2)} h · 💲 RD$ ${money(j.rate)} / hora</div>`:""}
+        <div>Mano de obra: RD$ ${money(lab)}</div>
+
+        <div class="toggle">
+          <label>
+            <input type="checkbox" ${includeExpenses[k]?"checked":""}
+              onchange="includeExpenses['${k.replace(/'/g,"\\'")}']=this.checked;render()">
+            Incluir gastos en este trabajo
+          </label>
+
+          ${(j.expenses||[]).length
+            ? `
+              <div class="gastos">
+                ${(j.expenses||[]).map(e=>`
+                  <div class="gasto">• ${e.desc}: RD$ ${money(e.amount)}</div>
+                `).join("")}
+                <div class="muted">
+                  Estado de gastos: ${includeExpenses[k]?"Incluidos":"No incluidos"}
+                </div>
+              </div>`
+            : `<div class="muted">Sin gastos</div>`
+          }
+        </div>
+
+        <div class="total">TOTAL: RD$ ${money(total)}</div>
+      </div>`;
+    });
+}
+
+/* ================================
+   🔧 ÚNICO CAMBIO: imprimirFactura()
+   ================================ */
+function imprimirFactura(){
+  const m=monthPick.value, v=villaPick.value;
+  if(v==="ALL"){
+    alert("Selecciona una villa para generar la factura");
+    return;
+  }
+
+  const items=jobs.map((j,i)=>({...j,_i:i}))
+    .filter(j=>(j.date||"").startsWith(m)&&j.villa===v)
+    .map(j=>{
+      const k=jobKey(j,j._i);
+      const lab=labor(j);
+      const exps=includeExpenses[k]?j.expenses||[]:[];
+      const total=lab+exps.reduce((s,e)=>s+Number(e.amount||0),0);
+
+      return{
+        desc:j.desc,
+        date:j.date,
+        start:j.start,
+        end:j.end,
+        hours:j.start?hoursBetween(j.start,j.end).toFixed(2):null,
+        rate:j.rate,
+        labor:lab,
+        expenses:exps,
+        total
+      };
+    });
+
+  sessionStorage.setItem("FACTURA_DATA",JSON.stringify({
+    villa:v,
+    mes:m,
+    items
+  }));
+
+  window.open("factura.html","_blank");
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+  load();
+  monthPick.value=new Date().toISOString().slice(0,7);
+  villaPick.innerHTML=`<option value="ALL">Seleccionar villa</option>`;
+  villas.forEach(v=>{
+    const n=`${v.owner} – Villa ${v.number}`;
+    villaPick.innerHTML+=`<option value="${n}">${n}</option>`;
+  });
+  monthPick.onchange=render;
+  villaPick.onchange=render;
+  render();
+});
+</script>
+
+</body>
+</html>

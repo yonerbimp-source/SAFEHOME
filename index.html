@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Safe Home – Property Management</title>
+
+<style>
+:root{
+  --bg:#0b0b0b;
+  --panel:#111;
+  --card:#151515;
+  --border:#262626;
+  --text:#f5f5f5;
+  --muted:#b5b5b5;
+  --gold:#d4af37;
+  --green:#1dd1a1;
+  --red:#e74c3c;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:"Segoe UI",Inter,Arial,sans-serif;
+  background:radial-gradient(circle at top,#1a1a1a,#0b0b0b);
+  color:var(--text);
+}
+
+header{
+  padding:28px 16px 22px;
+  text-align:center;
+  border-bottom:1px solid var(--border);
+}
+header img{width:120px;margin-bottom:12px}
+header h1{margin:0;font-size:28px;letter-spacing:2px;color:var(--gold)}
+header .sub{margin-top:6px;font-size:13px;letter-spacing:3px;color:#cfcfcf}
+
+.wrap{max-width:1100px;margin:auto;padding:20px}
+
+.center-row{
+  display:flex;
+  justify-content:center;
+  align-items:end;
+  gap:18px;
+  flex-wrap:wrap;
+  margin-bottom:22px;
+}
+
+label{font-size:12px;color:var(--muted)}
+
+input,select{
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--panel);
+  color:var(--text);
+}
+
+.total-box{
+  background:linear-gradient(180deg,#151515,#0f0f0f);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:14px 20px;
+  text-align:center;
+}
+.total-box .label{font-size:12px;color:var(--muted)}
+.total-box .total{font-size:26px;font-weight:900;color:var(--green)}
+
+.actions{
+  display:flex;
+  justify-content:center;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-bottom:26px;
+}
+
+button{
+  padding:12px 18px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:linear-gradient(180deg,#1a1a1a,#111);
+  color:#fff;
+  font-weight:800;
+  cursor:pointer;
+}
+button:hover{filter:brightness(1.15)}
+
+button.primary{
+  background:linear-gradient(180deg,#1dd1a1,#17b890);
+  color:#062a20;
+  border:none;
+}
+button.secondary{border-color:var(--gold);color:var(--gold)}
+
+.list{display:flex;flex-direction:column;gap:14px}
+
+.item{
+  background:linear-gradient(180deg,#161616,#101010);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:16px;
+}
+.item .title{font-size:18px;font-weight:900}
+.item .sub{font-size:12px;color:var(--muted);margin-top:4px}
+.item .actions{margin-top:12px}
+</style>
+</head>
+
+<body>
+
+<header>
+  <img src="logo.png" alt="Safe Home Logo">
+  <h1>SAFE HOME</h1>
+  <div class="sub">PROPERTY MANAGEMENT</div>
+</header>
+
+<div class="wrap">
+
+  <div class="center-row">
+    <div>
+      <label>Mes</label><br>
+      <input type="month" id="monthPick">
+    </div>
+
+    <div>
+      <label>Filtrar por villas</label><br>
+      <select id="villaFilter">
+        <option value="ALL">Todas las villas</option>
+      </select>
+    </div>
+
+    <div class="total-box">
+      <div class="label">TOTAL DEL MES</div>
+      <div class="total" id="monthTotal">RD$ 0.00</div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="btnAddJob" class="primary">➕ AGREGAR TRABAJO</button>
+    <button class="secondary" onclick="location.href='villas.html'">🏡 VER VILLAS</button>
+    <button class="secondary" onclick="location.href='villas.html#add'">➕ AGREGAR VILLA</button>
+    <button class="secondary" onclick="location.href='reporte_mensual.html'">📄 REPORTES</button>
+  </div>
+
+  <!-- 🔐 BACKUP / RESTORE (LO ÚNICO AGREGADO) -->
+  <div class="actions">
+    <button onclick="backupAllData()">💾 GUARDAR DATOS</button>
+    <button onclick="restoreAllData()">♻️ RECUPERAR DATOS</button>
+  </div>
+
+  <div class="list" id="jobsList"></div>
+
+</div>
+
+<input type="file" id="restoreInput" accept=".json" style="display:none">
+
+<script src="app.js"></script>
+
+<script>
+/* =========================================
+   BACKUP / RESTORE — TODO localStorage
+   ========================================= */
+function backupAllData(){
+  const data = {};
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    data[k] = localStorage.getItem(k);
+  }
+
+  const blob = new Blob(
+    [JSON.stringify(data, null, 2)],
+    { type:"application/json" }
+  );
+
+  const date = new Date().toISOString().slice(0,10);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `safehome_backup_${date}.json`;
+  a.click();
+}
+
+function restoreAllData(){
+  const input = document.getElementById("restoreInput");
+  input.click();
+
+  input.onchange = () => {
+    const file = input.files[0];
+    if(!file) return;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      try{
+        const data = JSON.parse(e.target.result);
+        localStorage.clear();
+        Object.keys(data).forEach(k=>{
+          localStorage.setItem(k, data[k]);
+        });
+        alert("Datos restaurados correctamente. La app se recargará.");
+        location.reload();
+      }catch(err){
+        alert("Archivo de respaldo inválido");
+      }
+    };
+    reader.readAsText(file);
+  };
+}
+</script>
+
+</body>
+</html>
