@@ -130,6 +130,30 @@ button.danger{
 </style>
 </head>
 <body>
+<div id="loginScreen" style="
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#0b0b0b;
+display:flex;
+align-items:center;
+justify-content:center;
+z-index:9999;
+flex-direction:column;
+color:white;
+font-family:Segoe UI;
+">
+  <h2 style="color:#d4af37;letter-spacing:2px">SAFE HOME – ACCESO</h2>
+  <input type="password" id="passwordInput" placeholder="Contraseña"
+    style="padding:12px 16px;margin:12px 0;border-radius:10px;border:1px solid #333;background:#111;color:white;width:260px;">
+  <button onclick="checkPassword()"
+    style="padding:10px 20px;border-radius:10px;border:none;background:#d4af37;font-weight:bold;cursor:pointer;">
+    Entrar
+  </button>
+</div>
+
 <header>
   <img src="logo.png" alt="Safe Home Logo">
   <h1>SAFE HOME</h1>
@@ -284,6 +308,18 @@ button.danger{
 <input type="file" id="restoreInput" accept=".json" style="display:none">
 
 <script src="app.js"></script>
+<script>
+function checkPassword(){
+  const correctPassword = "SafeHome2025"; // ← cambia esto
+  const input = document.getElementById("passwordInput").value;
+
+  if(input === correctPassword){
+    document.getElementById("loginScreen").style.display = "none";
+  } else {
+    alert("Contraseña incorrecta");
+  }
+}
+</script>
 
 <script>
 function backupAllData(){
