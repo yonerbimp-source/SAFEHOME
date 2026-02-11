@@ -2,11 +2,11 @@
   "background_color": "#ffffff",
   "dir": "ltr",
   "display": "standalone",
-  "name": "wild-snowflake-4829.yonerbimp.workers",
+  "name": "Safe Home",
   "orientation": "any",
-  "scope": "/",
-  "short_name": "wild-snowflake-4829.yonerbimp.workers",
-  "start_url": "/",
+  "scope": "./",
+  "short_name": "SafeHome",
+  "start_url": "./index.html",
   "theme_color": "#ffffff",
   "id": "SAFEHOME"
 }

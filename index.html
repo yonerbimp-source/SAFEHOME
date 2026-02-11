@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Safe Home – Property Management</title>
-
+<link rel="manifest" href="manifest.json">
 <style>
+
 :root{
   --bg:#0b0b0b;
   --panel:#111;
@@ -16,8 +17,8 @@
   --gold:#d4af37;
   --green:#1dd1a1;
   --red:#e74c3c;
+  --blue:#4aa3ff;
 }
-
 *{box-sizing:border-box}
 body{
   margin:0;
@@ -25,7 +26,6 @@ body{
   background:radial-gradient(circle at top,#1a1a1a,#0b0b0b);
   color:var(--text);
 }
-
 header{
   padding:28px 16px 22px;
   text-align:center;
@@ -34,46 +34,31 @@ header{
 header img{width:120px;margin-bottom:12px}
 header h1{margin:0;font-size:28px;letter-spacing:2px;color:var(--gold)}
 header .sub{margin-top:6px;font-size:13px;letter-spacing:3px;color:#cfcfcf}
-
 .wrap{max-width:1100px;margin:auto;padding:20px}
-
-.center-row{
-  display:flex;
-  justify-content:center;
-  align-items:end;
-  gap:18px;
-  flex-wrap:wrap;
-  margin-bottom:22px;
-}
-
 label{font-size:12px;color:var(--muted)}
-
-input,select{
+input,select,textarea{
   padding:10px 14px;
   border-radius:12px;
   border:1px solid var(--border);
   background:var(--panel);
   color:var(--text);
+  outline:none;
 }
-
-.total-box{
-  background:linear-gradient(180deg,#151515,#0f0f0f);
+textarea{min-height:90px;resize:vertical}
+.row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end}
+.card{
+  background:linear-gradient(180deg,#161616,#101010);
   border:1px solid var(--border);
-  border-radius:16px;
-  padding:14px 20px;
-  text-align:center;
+  border-radius:18px;
+  padding:16px;
 }
-.total-box .label{font-size:12px;color:var(--muted)}
-.total-box .total{font-size:26px;font-weight:900;color:var(--green)}
-
 .actions{
   display:flex;
   justify-content:center;
   gap:14px;
   flex-wrap:wrap;
-  margin-bottom:26px;
+  margin:14px 0 22px;
 }
-
 button{
   padding:12px 18px;
   border-radius:14px;
@@ -84,30 +69,67 @@ button{
   cursor:pointer;
 }
 button:hover{filter:brightness(1.15)}
-
 button.primary{
   background:linear-gradient(180deg,#1dd1a1,#17b890);
   color:#062a20;
   border:none;
 }
 button.secondary{border-color:var(--gold);color:var(--gold)}
-
+button.danger{
+  background:linear-gradient(180deg,#ff6b6b,#e74c3c);
+  border:none;
+}
+.badge{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  font-size:12px;
+  color:var(--muted);
+}
+.badge.ok{color:var(--green);border-color:#1dd1a155}
+.badge.warn{color:#ffd166;border-color:#ffd16655}
+.money{
+  font-size:22px;
+  font-weight:900;
+  color:var(--green);
+}
+.muted{font-size:12px;color:var(--muted)}
+.hr{border-top:1px solid var(--border);margin:18px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:800px){.grid2{grid-template-columns:1fr}}
+.modal-backdrop{
+  position:fixed; inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+.modal{width:min(720px,100%);}
+.modal h2{margin:0 0 10px;letter-spacing:1px}
+.modal .actions{margin:10px 0 0;justify-content:flex-end}
+.smallbtn{padding:8px 12px;border-radius:12px;font-weight:800}
 .list{display:flex;flex-direction:column;gap:14px}
 
-.item{
-  background:linear-gradient(180deg,#161616,#101010);
+.total-box{
+  background:linear-gradient(180deg,#151515,#0f0f0f);
   border:1px solid var(--border);
-  border-radius:18px;
-  padding:16px;
+  border-radius:16px;
+  padding:14px 20px;
+  text-align:center;
 }
-.item .title{font-size:18px;font-weight:900}
-.item .sub{font-size:12px;color:var(--muted);margin-top:4px}
-.item .actions{margin-top:12px}
+.total-box .label{font-size:12px;color:var(--muted);letter-spacing:2px}
+.total-box .total{font-size:22px;font-weight:900;color:var(--green)}
+.job-title{font-size:18px;font-weight:900}
+.job-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.expense{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px dashed var(--border);border-radius:14px;margin-top:8px}
+.expense span{font-size:13px;color:var(--muted)}
+.amountline{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-top:8px}
+.amountline .money{font-size:20px}
 </style>
 </head>
-
 <body>
-
 <header>
   <img src="logo.png" alt="Safe Home Logo">
   <h1>SAFE HOME</h1>
@@ -116,7 +138,7 @@ button.secondary{border-color:var(--gold);color:var(--gold)}
 
 <div class="wrap">
 
-  <div class="center-row">
+  <div class="row">
     <div>
       <label>Mes</label><br>
       <input type="month" id="monthPick">
@@ -124,25 +146,26 @@ button.secondary{border-color:var(--gold);color:var(--gold)}
 
     <div>
       <label>Filtrar por villas</label><br>
-      <select id="villaFilter">
-        <option value="ALL">Todas las villas</option>
-      </select>
+      <select id="villaFilter"></select>
     </div>
 
     <div class="total-box">
-      <div class="label">TOTAL DEL MES</div>
-      <div class="total" id="monthTotal">RD$ 0.00</div>
+      <div class="label">TOTAL RD$</div>
+      <div class="total" id="monthTotalRD">RD$ 0.00</div>
+    </div>
+
+    <div class="total-box">
+      <div class="label">TOTAL US$</div>
+      <div class="total" id="monthTotalUSD">US$ 0.00</div>
     </div>
   </div>
 
   <div class="actions">
-    <button id="btnAddJob" class="primary">➕ AGREGAR TRABAJO</button>
+    <button id="btnOpenAddJob" class="primary">➕ AGREGAR TRABAJO</button>
     <button class="secondary" onclick="location.href='villas.html'">🏡 VER VILLAS</button>
-    <button class="secondary" onclick="location.href='villas.html#add'">➕ AGREGAR VILLA</button>
     <button class="secondary" onclick="location.href='reporte_mensual.html'">📄 REPORTES</button>
   </div>
 
-  <!-- 🔐 BACKUP / RESTORE (LO ÚNICO AGREGADO) -->
   <div class="actions">
     <button onclick="backupAllData()">💾 GUARDAR DATOS</button>
     <button onclick="restoreAllData()">♻️ RECUPERAR DATOS</button>
@@ -152,49 +175,142 @@ button.secondary{border-color:var(--gold);color:var(--gold)}
 
 </div>
 
+<!-- MODAL: AGREGAR/EDITAR TRABAJO -->
+<div class="modal-backdrop" id="jobModalBackdrop">
+  <div class="card modal">
+    <h2 id="jobModalTitle">Agregar trabajo</h2>
+
+    <div class="grid2">
+      <div>
+        <label>Villa</label><br>
+        <select id="jobVilla"></select>
+      </div>
+      <div>
+        <label>Fecha</label><br>
+        <input type="date" id="jobDate">
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <label>Descripción</label><br>
+      <input id="jobDesc" placeholder="Ej: Reparación de bomba" style="width:100%">
+    </div>
+
+    <div class="grid2" style="margin-top:12px">
+      <div>
+        <label>Moneda</label><br>
+        <select id="jobCurrency">
+          <option value="RD$">RD$ (Pesos Dominicanos)</option>
+          <option value="US$">US$ (Dólares)</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Tipo de cobro</label><br>
+        <select id="jobType">
+          <option value="fixed">Monto fijo</option>
+          <option value="hours">Por horas</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid2" id="fixedBox" style="margin-top:12px">
+      <div>
+        <label>Monto (mano de obra)</label><br>
+        <input id="jobLabor" type="number" step="0.01" placeholder="0.00">
+      </div>
+      <div>
+        <label>Estado</label><br>
+        <select id="jobStatus">
+          <option value="pendiente">PENDIENTE</option>
+          <option value="realizado">REALIZADO</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid2" id="hoursBox" style="margin-top:12px; display:none">
+      <div>
+        <label>Hora inicio (HH:MM)</label><br>
+        <input id="jobStart" type="time">
+      </div>
+      <div>
+        <label>Hora salida (HH:MM)</label><br>
+        <input id="jobEnd" type="time">
+      </div>
+      <div>
+        <label>Precio por hora</label><br>
+        <input id="jobRate" type="number" step="0.01" placeholder="0.00">
+      </div>
+      <div>
+        <label>Estado</label><br>
+        <select id="jobStatus2">
+          <option value="pendiente">PENDIENTE</option>
+          <option value="realizado">REALIZADO</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="secondary" onclick="closeJobModal()">Cancelar</button>
+      <button class="primary" onclick="saveJobFromModal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: GASTO -->
+<div class="modal-backdrop" id="expModalBackdrop">
+  <div class="card modal">
+    <h2>Agregar gasto</h2>
+    <div class="grid2">
+      <div>
+        <label>Descripción</label><br>
+        <input id="expDesc" placeholder="Ej: Compra de pieza">
+      </div>
+      <div>
+        <label>Monto</label><br>
+        <input id="expAmount" type="number" step="0.01" placeholder="0.00">
+      </div>
+    </div>
+    <div class="muted" style="margin-top:10px">
+      Nota: El gasto se guarda en la misma moneda del trabajo.
+    </div>
+    <div class="actions">
+      <button class="secondary" onclick="closeExpModal()">Cancelar</button>
+      <button class="primary" onclick="saveExpenseFromModal()">Guardar gasto</button>
+    </div>
+  </div>
+</div>
+
 <input type="file" id="restoreInput" accept=".json" style="display:none">
 
 <script src="app.js"></script>
 
 <script>
-/* =========================================
-   BACKUP / RESTORE — TODO localStorage
-   ========================================= */
 function backupAllData(){
   const data = {};
   for(let i=0;i<localStorage.length;i++){
     const k = localStorage.key(i);
     data[k] = localStorage.getItem(k);
   }
-
-  const blob = new Blob(
-    [JSON.stringify(data, null, 2)],
-    { type:"application/json" }
-  );
-
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:"application/json" });
   const date = new Date().toISOString().slice(0,10);
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = `safehome_backup_${date}.json`;
   a.click();
 }
-
 function restoreAllData(){
   const input = document.getElementById("restoreInput");
   input.click();
-
   input.onchange = () => {
     const file = input.files[0];
     if(!file) return;
-
     const reader = new FileReader();
     reader.onload = e => {
       try{
         const data = JSON.parse(e.target.result);
         localStorage.clear();
-        Object.keys(data).forEach(k=>{
-          localStorage.setItem(k, data[k]);
-        });
+        Object.keys(data).forEach(k=>localStorage.setItem(k, data[k]));
         alert("Datos restaurados correctamente. La app se recargará.");
         location.reload();
       }catch(err){
@@ -206,5 +322,10 @@ function restoreAllData(){
 }
 </script>
 
+<script>
+if("serviceWorker" in navigator){
+  try{ navigator.serviceWorker.register("./sw.js"); }catch(e){}
+}
+</script>
 </body>
 </html>

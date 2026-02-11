@@ -1,10 +1,14 @@
-const CACHE_NAME = "safehome-cache-v1";
+const CACHE_NAME = "safehome-cache-v4";
 
 const FILES_TO_CACHE = [
   "./",
   "./index.html",
+  "./villas.html",
+  "./reporte_mensual.html",
+  "./factura.html",
   "./app.js",
-  "./manifest.json"
+  "./manifest.json",
+  "./logo.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -17,9 +21,7 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(
-        keys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : null))
-      )
+      Promise.all(keys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : null)))
     )
   );
   self.clients.claim();
