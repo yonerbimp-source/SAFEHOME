@@ -170,27 +170,29 @@ let jobs=[], villas=[], includeExpenses={};
 function money(n){ return Number(n||0).toLocaleString("es-DO",{minimumFractionDigits:2}); }
 
 function toMinutes(hhmm){
-  const p=String(hhmm||"").split(":").map(Number);
-  return (p[0]||0)*60+(p[1]||0);
+  const [h,m] = String(hhmm||"0:0").split(":").map(Number);
+  return (h||0)*60 + (m||0);
 }
 function minutesBetween(a,b){
   const s=toMinutes(a);
   let e=toMinutes(b);
-  if(e < s) e += 24*60;
-  return e - s;
+  if(e<=s) e+=24*60;
+  return e-s;
 }
 function hoursBetween(a,b){
   return minutesBetween(a,b)/60;
 }
-function formatDurationHM(mins){
-  const h=Math.floor(mins/60), m=mins%60;
-  if(h===0) return `${m}m`;
-  if(m===0) return `${h}h`;
-  return `${h}h ${String(m).padStart(2,"0")}m`;
+function formatHMFromMinutes(mins){
+  const total=Math.max(0, Math.round(Number(mins)||0));
+  const h=Math.floor(total/60);
+  const m=total%60;
+  return `${h}h ${m}m`;
 }
-function durationBetweenLabel(a,b){
-  return formatDurationHM(minutesBetween(a,b));
+function formatDuration(a,b){
+  if(!a||!b) return "";
+  return formatHMFromMinutes(minutesBetween(a,b));
 }
+
 function labor(j){
   if((j.type==="hours" || (j.start&&j.end&&j.rate)) && j.start&&j.end&&j.rate){
     return Number((hoursBetween(j.start,j.end)*Number(j.rate)).toFixed(2));
@@ -198,7 +200,8 @@ function labor(j){
   return Number(j.labor||0);
 }
 function jobKey(j,idx){
-  return (j.date||"")+"|"+(j.villa||"")+"|"+(j.desc||"")+"|"+(j.currency||"")+"|"+idx;
+  const subj = j.subject || j.desc || "";
+  return (j.date||"")+"|"+(j.villa||"")+"|"+subj+"|"+(j.currency||"")+"|"+idx;
 }
 
 function load(){
@@ -237,10 +240,11 @@ function render(){
 
     box.innerHTML+=`
       <div class="card" style="margin-bottom:14px">
-        <div class="item-title">${j.desc}</div>
+        <div class="item-title">${j.subject || j.desc || ""}</div>
+        ${(j.details||"").trim()?`<div class="muted" style="margin-top:4px">${String(j.details).replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>`:""}
         <div class="muted">${j.date} · ${j.villa} · ${cur}</div>
         ${j.start?`<div>⏰ ${j.start} → ${j.end}</div>`:""}
-        ${j.rate?`<div class="muted">⏱️ ${durationBetweenLabel(j.start,j.end)} · 💲 ${cur} ${money(j.rate)} / hora</div>`:""}
+        ${j.rate?`<div class="muted">⏱️ ${formatDuration(j.start,j.end)} · 💲 ${cur} ${money(j.rate)} / hora</div>`:""}
         <div>Mano de obra: <strong>${cur} ${money(lab)}</strong></div>
 
         <div style="margin-top:10px;padding:10px 12px;border:1px dashed var(--border);border-radius:14px">
@@ -289,12 +293,14 @@ function imprimirFactura(){
       const total=lab+exps.reduce((s,e)=>s+Number(e.amount||0),0);
 
       return{
-        desc:j.desc,
+        subject:(j.subject || j.desc || ""),
+        details:(j.details || ""),
         date:j.date,
         currency:cur,
         start:j.start,
         end:j.end,
-        hours:j.start?hoursBetween(j.start,j.end).toFixed(2):null,
+        hours_decimal:j.start?Number(hoursBetween(j.start,j.end).toFixed(2)):null,
+        hours_fmt:j.start?formatDuration(j.start,j.end):null,
         rate:j.rate,
         labor:lab,
         expenses:exps,

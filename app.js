@@ -27,23 +27,24 @@ function toMinutes(hhmm){
 function minutesBetween(start, end){
   const s = toMinutes(start);
   let e = toMinutes(end);
-  // Si cruza medianoche, suma 24h
-  if (e < s) e += 24 * 60;
-  return e - s;
+  // Si la salida es menor o igual a la entrada, asumimos que el trabajo cruzó medianoche
+  if (e <= s) e += 24 * 60;
+  return (e - s);
 }
 function hoursBetween(start, end){
   return minutesBetween(start,end) / 60;
 }
-function formatDurationHM(mins){
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  if(h===0) return `${m}m`;
-  if(m===0) return `${h}h`;
-  return `${h}h ${String(m).padStart(2,"0")}m`;
+function formatHMFromMinutes(mins){
+  const total = Math.max(0, Math.round(Number(mins)||0));
+  const h = Math.floor(total/60);
+  const m = total % 60;
+  return `${h}h ${m}m`;
 }
-function durationBetweenLabel(start,end){
-  return formatDurationHM(minutesBetween(start,end));
+function formatDuration(start,end){
+  if(!start || !end) return "";
+  return formatHMFromMinutes(minutesBetween(start,end));
 }
+
 
 function jobLabor(j){
   if(j.type === "hours" && j.start && j.end && j.rate){
@@ -63,6 +64,13 @@ function ensureJobDefaults(j){
   if(!j.status) j.status = "pendiente";
   if(!j.type) j.type = (j.start && j.end && j.rate) ? "hours" : "fixed";
   if(!Array.isArray(j.expenses)) j.expenses = [];
+
+  // Compatibilidad: antes solo existía `desc` (una sola descripción).
+  // Ahora: `subject` (asunto/título) + `details` (detalles del trabajo).
+  if(!j.subject && j.desc) j.subject = j.desc;
+  if(j.details === undefined || j.details === null) j.details = "";
+  // Mantener `desc` por compatibilidad con respaldos viejos
+  if(!j.desc && j.subject) j.desc = j.subject;
   return j;
 }
 
@@ -125,7 +133,8 @@ function openJobModal(mode, index=null){
 
   // defaults
   $("jobDate").value = todayISO();
-  $("jobDesc").value = "";
+  $("jobSubject").value = "";
+  $("jobDetails").value = "";
   $("jobCurrency").value = "RD$";
   $("jobType").value = "fixed";
   $("jobLabor").value = "";
@@ -140,7 +149,8 @@ function openJobModal(mode, index=null){
     title.textContent = "Editar trabajo";
     villaSel.value = j.villa || "";
     $("jobDate").value = j.date || todayISO();
-    $("jobDesc").value = j.desc || "";
+    $("jobSubject").value = j.subject || j.desc || "";
+    $("jobDetails").value = j.details || "";
     $("jobCurrency").value = j.currency || "RD$";
     $("jobType").value = j.type || ((j.start&&j.end&&j.rate)?"hours":"fixed");
     if($("jobType").value === "hours"){
@@ -181,12 +191,14 @@ function saveJobFromModal(){
 
   const villa = $("jobVilla").value;
   const date = $("jobDate").value || todayISO();
-  const desc = $("jobDesc").value.trim();
+  const subject = $("jobSubject").value.trim();
+  const details = $("jobDetails").value.trim();
   const currency = $("jobCurrency").value;
   const type = $("jobType").value;
 
   if(!villa){ alert("Selecciona una villa"); return; }
-  if(!desc){ alert("Escribe una descripción"); return; }
+  if(!subject){ alert("Escribe el ASUNTO"); return; }
+  if(!details){ alert("Escribe los detalles del trabajo"); return; }
 
   let job = null;
   if(editingJobIndex !== null && state.jobs[editingJobIndex]){
@@ -197,7 +209,10 @@ function saveJobFromModal(){
 
   job.villa = villa;
   job.date = date;
-  job.desc = desc;
+  job.subject = subject;
+  job.details = details;
+  // Compatibilidad (para respaldos / versiones previas)
+  job.desc = subject;
   job.currency = currency;
   job.type = type;
 
@@ -327,7 +342,7 @@ function refreshJobs(){
     else sumRD += total;
 
     const hoursLine = (j.type==="hours" && j.start && j.end && j.rate)
-      ? `${durationBetweenLabel(j.start,j.end)} × ${money(j.rate)}`
+      ? `${formatDuration(j.start,j.end)} × ${money(j.rate)}`
       : "Monto fijo";
 
     const statusBadge = (j.status==="realizado")
@@ -344,7 +359,8 @@ function refreshJobs(){
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-      <div class="job-title">${j.desc}</div>
+      <div class="job-title">${j.subject || j.desc || ""}</div>
+      ${((j.details||"").trim()) ? `<div class="muted" style="margin-top:4px">${String(j.details).replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>` : ""}
       <div class="muted">${j.date} · 🏡 ${j.villa}</div>
 
       <div class="amountline">

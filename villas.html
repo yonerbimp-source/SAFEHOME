@@ -174,14 +174,10 @@ function toMinutes(hhmm){
   const p=String(hhmm||"").split(":").map(Number);
   return (p[0]||0)*60+(p[1]||0);
 }
-function minutesBetween(a,b){
-  const s=toMinutes(a);
-  let e=toMinutes(b);
-  if(e < s) e += 24*60;
-  return e - s;
-}
 function hoursBetween(a,b){
-  return minutesBetween(a,b)/60;
+  let s=toMinutes(a), e=toMinutes(b);
+  if(e<=s) e+=12*60;
+  return (e-s)/60;
 }
 function jobLabor(j){
   if((j.type==="hours" || (j.start && j.end && j.rate)) && j.start && j.end && j.rate){
@@ -261,7 +257,8 @@ function render(){
             const cur=j.currency||"RD$";
             return `
               <div class="job">
-                <strong>${j.desc}</strong><br>
+                <strong>${j.subject || j.desc || ""}</strong><br>
+                ${(j.details||"").trim()?`<span class="muted">${String(j.details).replace(/</g,"&lt;").replace(/>/g,"&gt;")}</span><br>`:""}
                 <span class="muted">${j.date} · ${cur}</span><br>
                 <span class="money">${cur} ${money(jobTotal(j))}</span>
               </div>

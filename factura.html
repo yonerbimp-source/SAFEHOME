@@ -90,6 +90,28 @@ const $ = id => document.getElementById(id);
 
 function money(n){ return Number(n||0).toLocaleString("es-DO",{minimumFractionDigits:2}); }
 
+function toMinutes(hhmm){
+  const [h,m] = String(hhmm||"0:0").split(":").map(Number);
+  return (h||0)*60 + (m||0);
+}
+function minutesBetween(a,b){
+  const s=toMinutes(a);
+  let e=toMinutes(b);
+  if(e<=s) e+=24*60;
+  return e-s;
+}
+function formatHMFromMinutes(mins){
+  const total=Math.max(0, Math.round(Number(mins)||0));
+  const h=Math.floor(total/60);
+  const m=total%60;
+  return `${h}h ${m}m`;
+}
+function formatDuration(a,b){
+  if(!a||!b) return "";
+  return formatHMFromMinutes(minutesBetween(a,b));
+}
+
+
 $("cliente").textContent = data.villa || "";
 $("periodo").textContent = data.mes || "";
 $("fecha").textContent = new Date().toLocaleDateString();
@@ -106,7 +128,7 @@ let sumUSD = 0;
   if(j.start && j.end){
     detail += `Moneda: <strong>${cur}</strong><br>`;
     detail += `Horario: ${j.start} → ${j.end}<br>`;
-    detail += `Horas trabajadas: ${j.hours} h<br>`;
+    detail += `Horas trabajadas: ${j.hours_fmt || (j.start&&j.end?formatDuration(j.start,j.end): (j.hours_decimal!=null?`${j.hours_decimal}h`:""))}<br>`;
     detail += `Precio por hora: ${cur} ${money(j.rate)}<br>`;
     detail += `Mano de obra: ${cur} ${money(j.labor)}<br>`;
   }else{
@@ -123,7 +145,10 @@ let sumUSD = 0;
 
   $("items").innerHTML += `
     <tr>
-      <td>${j.desc}</td>
+      <td>
+        <div style="font-weight:900">${j.subject || j.desc || ""}</div>
+        ${(j.details||"").trim()?`<div style="font-size:12px;opacity:.85;margin-top:4px">${String(j.details).replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>`:""}
+      </td>
       <td>${j.date}</td>
       <td>${detail}</td>
       <td>${cur} ${money(j.total)}</td>
