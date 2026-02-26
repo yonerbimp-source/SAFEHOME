@@ -173,10 +173,23 @@ function toMinutes(hhmm){
   const p=String(hhmm||"").split(":").map(Number);
   return (p[0]||0)*60+(p[1]||0);
 }
+function minutesBetween(a,b){
+  const s=toMinutes(a);
+  let e=toMinutes(b);
+  if(e < s) e += 24*60;
+  return e - s;
+}
 function hoursBetween(a,b){
-  let s=toMinutes(a), e=toMinutes(b);
-  if(e<=s) e+=12*60;
-  return (e-s)/60;
+  return minutesBetween(a,b)/60;
+}
+function formatDurationHM(mins){
+  const h=Math.floor(mins/60), m=mins%60;
+  if(h===0) return `${m}m`;
+  if(m===0) return `${h}h`;
+  return `${h}h ${String(m).padStart(2,"0")}m`;
+}
+function durationBetweenLabel(a,b){
+  return formatDurationHM(minutesBetween(a,b));
 }
 function labor(j){
   if((j.type==="hours" || (j.start&&j.end&&j.rate)) && j.start&&j.end&&j.rate){
@@ -227,7 +240,7 @@ function render(){
         <div class="item-title">${j.desc}</div>
         <div class="muted">${j.date} · ${j.villa} · ${cur}</div>
         ${j.start?`<div>⏰ ${j.start} → ${j.end}</div>`:""}
-        ${j.rate?`<div class="muted">⏱️ ${hoursBetween(j.start,j.end).toFixed(2)} h · 💲 ${cur} ${money(j.rate)} / hora</div>`:""}
+        ${j.rate?`<div class="muted">⏱️ ${durationBetweenLabel(j.start,j.end)} · 💲 ${cur} ${money(j.rate)} / hora</div>`:""}
         <div>Mano de obra: <strong>${cur} ${money(lab)}</strong></div>
 
         <div style="margin-top:10px;padding:10px 12px;border:1px dashed var(--border);border-radius:14px">

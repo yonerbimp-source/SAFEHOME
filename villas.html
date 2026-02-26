@@ -174,10 +174,14 @@ function toMinutes(hhmm){
   const p=String(hhmm||"").split(":").map(Number);
   return (p[0]||0)*60+(p[1]||0);
 }
+function minutesBetween(a,b){
+  const s=toMinutes(a);
+  let e=toMinutes(b);
+  if(e < s) e += 24*60;
+  return e - s;
+}
 function hoursBetween(a,b){
-  let s=toMinutes(a), e=toMinutes(b);
-  if(e<=s) e+=12*60;
-  return (e-s)/60;
+  return minutesBetween(a,b)/60;
 }
 function jobLabor(j){
   if((j.type==="hours" || (j.start && j.end && j.rate)) && j.start && j.end && j.rate){

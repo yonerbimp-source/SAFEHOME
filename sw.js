@@ -1,4 +1,4 @@
-const CACHE_NAME = "safehome-cache-v5";
+const CACHE_NAME = "safehome-cache-v7";
 
 const FILES_TO_CACHE = [
   "./",

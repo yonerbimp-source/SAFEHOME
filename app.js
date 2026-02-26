@@ -24,11 +24,25 @@ function toMinutes(hhmm){
   const [h,m] = String(hhmm||"0:0").split(":").map(Number);
   return (h||0)*60 + (m||0);
 }
-function hoursBetween(start, end){
+function minutesBetween(start, end){
   const s = toMinutes(start);
   let e = toMinutes(end);
-  if (e <= s) e += 12 * 60; // asumir tarde
-  return (e - s) / 60;
+  // Si cruza medianoche, suma 24h
+  if (e < s) e += 24 * 60;
+  return e - s;
+}
+function hoursBetween(start, end){
+  return minutesBetween(start,end) / 60;
+}
+function formatDurationHM(mins){
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if(h===0) return `${m}m`;
+  if(m===0) return `${h}h`;
+  return `${h}h ${String(m).padStart(2,"0")}m`;
+}
+function durationBetweenLabel(start,end){
+  return formatDurationHM(minutesBetween(start,end));
 }
 
 function jobLabor(j){
@@ -313,7 +327,7 @@ function refreshJobs(){
     else sumRD += total;
 
     const hoursLine = (j.type==="hours" && j.start && j.end && j.rate)
-      ? `${hoursBetween(j.start,j.end).toFixed(2)} h × ${money(j.rate)}`
+      ? `${durationBetweenLabel(j.start,j.end)} × ${money(j.rate)}`
       : "Monto fijo";
 
     const statusBadge = (j.status==="realizado")
