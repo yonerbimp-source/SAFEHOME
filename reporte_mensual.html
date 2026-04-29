@@ -115,7 +115,8 @@ button.danger{
 .item-title{font-weight:900}
 .totalline{display:flex;justify-content:flex-end;gap:18px;flex-wrap:wrap;margin-top:10px}
 @media print{
-  button,.controls,input[type="checkbox"]{display:none !important;}
+  button,.controls,input[type="checkbox"],.no-print{display:none !important;}
+  .not-included{display:none !important;}
   body{background:#fff;color:#000}
   .card{background:#fff;border:1px solid #ccc}
   .muted,.item-title,.money{color:#000 !important}
@@ -165,7 +166,7 @@ const JOBS_KEY="safehome_jobs_base";
 const VILLAS_KEY="safehome_villas";
 const $=id=>document.getElementById(id);
 
-let jobs=[], villas=[], includeExpenses={};
+let jobs=[], villas=[], includeExpenses={}, includeJobs={};
 
 function money(n){ return Number(n||0).toLocaleString("es-DO",{minimumFractionDigits:2}); }
 
@@ -213,6 +214,7 @@ function computeTotals(filtered){
   let rd=0, usd=0;
   filtered.forEach(j=>{
     const k=jobKey(j,j._i);
+    if(includeJobs[k] === false) return;
     const lab=labor(j);
     const exps = includeExpenses[k] ? (j.expenses||[]) : [];
     const tot = lab + exps.reduce((s,e)=>s+Number(e.amount||0),0);
@@ -232,6 +234,7 @@ function render(){
 
   filtered.forEach(j=>{
     const k=jobKey(j,j._i);
+    if(includeJobs[k]===undefined) includeJobs[k]=true;
     if(includeExpenses[k]===undefined) includeExpenses[k]=false;
 
     const cur = j.currency || "RD$";
@@ -239,7 +242,15 @@ function render(){
     const total=lab+(includeExpenses[k]?(j.expenses||[]).reduce((s,e)=>s+Number(e.amount||0),0):0);
 
     box.innerHTML+=`
-      <div class="card" style="margin-bottom:14px">
+      <div class="card ${includeJobs[k] ? "" : "not-included"}" style="margin-bottom:14px">
+        <div style="margin-bottom:10px;padding:10px 12px;border:1px solid var(--border);border-radius:14px" class="no-print">
+          <label>
+            <input type="checkbox" ${includeJobs[k]?"checked":""}
+              onchange="includeJobs['${k.replace(/'/g,"\\'")}']=this.checked;render()">
+            Incluir este trabajo en la factura / impresión
+          </label>
+          <div class="muted" style="margin-top:5px">${includeJobs[k]?"Este trabajo sí aparecerá en la impresión":"Este trabajo no aparecerá en la impresión"}</div>
+        </div>
         <div class="item-title">${j.subject || j.desc || ""}</div>
         ${(j.details||"").trim()?`<div class="muted" style="margin-top:4px">${String(j.details).replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>`:""}
         <div class="muted">${j.date} · ${j.villa} · ${cur}</div>
@@ -285,6 +296,11 @@ function imprimirFactura(){
 
   const rows = jobs.map((j,i)=>({...j,_i:i}))
     .filter(j=>(j.date||"").startsWith(m)&&j.villa===v)
+    .filter(j=>{
+      const k=jobKey(j,j._i);
+      if(includeJobs[k]===undefined) includeJobs[k]=true;
+      return includeJobs[k] !== false;
+    })
     .map(j=>{
       const k=jobKey(j,j._i);
       const lab=labor(j);
@@ -307,6 +323,8 @@ function imprimirFactura(){
         total
       };
     });
+
+  if(!rows.length){ alert("No hay trabajos marcados para generar la factura"); return; }
 
   sessionStorage.setItem("FACTURA_DATA",JSON.stringify({
     villa:v,
